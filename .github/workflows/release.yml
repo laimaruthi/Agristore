@@ -31,6 +31,17 @@ jobs:
           node-version: 20
           cache: npm
 
+      # node-gyp (used when electron-builder rebuilds better-sqlite3 for
+      # Electron's ABI) imports distutils, which Python 3.12+ removed. Pin 3.11
+      # and ensure setuptools is present so the native rebuild succeeds.
+      - name: Setup Python (for node-gyp / native rebuild)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Ensure build prerequisites
+        run: python -m pip install --upgrade setuptools
+
       - name: Install dependencies
         # npm install (not `npm ci`): the lockfile can't fully enumerate
         # platform-specific optional deps (e.g. @emnapi/* WASM fallbacks,
