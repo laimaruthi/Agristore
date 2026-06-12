@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(firebase deploy:*)",
+      "Bash(npm run:*)",
+      "Bash(firebase firestore:rules:get)",
+      "Bash(firebase:*)",
+      "Bash(npx firebase:*)",
+      "Bash(npx vite:*)"
+    ]
+  }
+}

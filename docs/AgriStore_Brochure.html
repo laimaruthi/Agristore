@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgriStore — Smart Inventory & Billing for Agri-Input Stores</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: #1a2e2a;
+    background: #f7faf8;
+    line-height: 1.6;
+  }
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+  /* HERO */
+  .hero {
+    background: linear-gradient(135deg, #0f5132 0%, #047857 50%, #059669 100%);
+    color: white;
+    padding: 80px 0 100px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: "";
+    position: absolute; inset: 0;
+    background: radial-gradient(circle at 20% 20%, rgba(255,255,255,.08), transparent 40%),
+                radial-gradient(circle at 80% 80%, rgba(255,255,255,.05), transparent 40%);
+  }
+  .hero-content { position: relative; z-index: 1; }
+  .hero .logo { font-size: 56px; margin-bottom: 16px; }
+  .hero h1 { font-size: 48px; font-weight: 800; margin-bottom: 16px; letter-spacing: -1px; }
+  .hero .tag { font-size: 22px; opacity: .92; margin-bottom: 8px; font-weight: 500; }
+  .hero .sub { font-size: 16px; opacity: .8; max-width: 700px; margin: 0 auto 36px; }
+  .badges { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .badge {
+    background: rgba(255,255,255,.15);
+    padding: 8px 16px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,.2);
+  }
+
+  /* SECTIONS */
+  section { padding: 70px 0; }
+  section.alt { background: white; }
+  h2 {
+    font-size: 32px;
+    color: #047857;
+    margin-bottom: 12px;
+    font-weight: 800;
+    text-align: center;
+  }
+  .section-sub { text-align: center; color: #4a5d59; font-size: 16px; margin-bottom: 48px; }
+
+  /* HIGHLIGHTS */
+  .highlights { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: -50px; position: relative; z-index: 2; }
+  .highlight {
+    background: white;
+    padding: 28px 20px;
+    border-radius: 16px;
+    text-align: center;
+    box-shadow: 0 10px 40px rgba(4,120,87,.12);
+    transition: transform .2s;
+  }
+  .highlight:hover { transform: translateY(-4px); }
+  .highlight .ic { font-size: 32px; margin-bottom: 10px; }
+  .highlight .num { font-size: 22px; font-weight: 800; color: #047857; }
+  .highlight .lbl { font-size: 13px; color: #4a5d59; margin-top: 4px; }
+
+  /* FEATURE GRID */
+  .feat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .feat {
+    background: white;
+    border: 1px solid #e3ece8;
+    padding: 28px 24px;
+    border-radius: 14px;
+    transition: all .2s;
+  }
+  .feat:hover { border-color: #10b981; box-shadow: 0 8px 24px rgba(16,185,129,.1); transform: translateY(-2px); }
+  .feat .ic { font-size: 36px; margin-bottom: 14px; }
+  .feat h3 { font-size: 18px; color: #047857; margin-bottom: 10px; font-weight: 700; }
+  .feat p { font-size: 14px; color: #475662; }
+  .feat ul { margin-top: 12px; padding-left: 18px; font-size: 13px; color: #4a5d59; }
+  .feat ul li { margin-bottom: 5px; }
+
+  /* WHY US */
+  .why-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 36px; }
+  .why {
+    display: flex;
+    gap: 16px;
+    background: #f0fdf4;
+    border-left: 4px solid #10b981;
+    padding: 20px 22px;
+    border-radius: 12px;
+  }
+  .why .ic { font-size: 28px; flex-shrink: 0; }
+  .why h4 { color: #047857; font-size: 16px; margin-bottom: 6px; font-weight: 700; }
+  .why p { font-size: 14px; color: #475662; }
+
+  /* COMPARISON */
+  .compare-wrap { overflow-x: auto; margin-top: 36px; }
+  table.compare {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,.06);
+  }
+  table.compare th, table.compare td {
+    padding: 14px 16px;
+    text-align: left;
+    border-bottom: 1px solid #e3ece8;
+    font-size: 14px;
+  }
+  table.compare thead {
+    background: linear-gradient(135deg, #047857, #059669);
+    color: white;
+  }
+  table.compare th { font-weight: 700; }
+  table.compare tbody tr:hover { background: #f7faf8; }
+  table.compare td.yes { color: #047857; font-weight: 700; }
+  table.compare td.no { color: #b91c1c; }
+  table.compare td.partial { color: #d97706; }
+  .col-us { background: rgba(16,185,129,.06); }
+
+  /* PRICING */
+  .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 36px; }
+  .plan {
+    background: white;
+    border: 2px solid #e3ece8;
+    border-radius: 16px;
+    padding: 32px 26px;
+    text-align: center;
+    position: relative;
+  }
+  .plan.featured {
+    border-color: #10b981;
+    transform: scale(1.05);
+    box-shadow: 0 12px 36px rgba(16,185,129,.18);
+  }
+  .plan .pop {
+    position: absolute;
+    top: -12px; left: 50%; transform: translateX(-50%);
+    background: linear-gradient(135deg, #047857, #059669);
+    color: white;
+    padding: 5px 16px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .5px;
+  }
+  .plan h3 { color: #047857; font-size: 20px; margin-bottom: 8px; }
+  .plan .price { font-size: 36px; font-weight: 800; color: #1a2e2a; margin: 16px 0 4px; }
+  .plan .per { font-size: 13px; color: #6b7d78; margin-bottom: 22px; }
+  .plan ul { text-align: left; padding-left: 0; list-style: none; margin-bottom: 22px; }
+  .plan ul li { padding: 8px 0; font-size: 14px; color: #475662; border-bottom: 1px dashed #e3ece8; }
+  .plan ul li::before { content: "✓ "; color: #10b981; font-weight: 800; }
+  .plan .cta {
+    display: inline-block;
+    background: linear-gradient(135deg, #047857, #059669);
+    color: white;
+    padding: 12px 32px;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 14px;
+  }
+  .plan.featured .cta { background: linear-gradient(135deg, #059669, #10b981); box-shadow: 0 4px 16px rgba(16,185,129,.4); }
+
+  /* CTA FOOTER */
+  .cta-footer {
+    background: linear-gradient(135deg, #047857, #0f5132);
+    color: white;
+    padding: 60px 0;
+    text-align: center;
+  }
+  .cta-footer h2 { color: white; }
+  .cta-footer p { opacity: .9; margin: 12px 0 24px; }
+  .cta-footer .btn {
+    display: inline-block;
+    background: white;
+    color: #047857;
+    padding: 14px 36px;
+    border-radius: 12px;
+    text-decoration: none;
+    font-weight: 800;
+    font-size: 15px;
+    margin: 0 8px 12px;
+  }
+  .cta-footer .btn.alt { background: transparent; color: white; border: 2px solid white; }
+
+  footer {
+    background: #1a2e2a;
+    color: #9ca8a4;
+    padding: 28px 0;
+    text-align: center;
+    font-size: 13px;
+  }
+  footer a { color: #10b981; text-decoration: none; }
+
+  @media (max-width: 760px) {
+    .highlights, .feat-grid, .why-grid, .pricing-grid { grid-template-columns: 1fr 1fr; }
+    .hero h1 { font-size: 34px; }
+    .pricing-grid { grid-template-columns: 1fr; }
+    .plan.featured { transform: none; }
+  }
+  @media (max-width: 480px) {
+    .highlights, .feat-grid, .why-grid { grid-template-columns: 1fr; }
+  }
+  @media print {
+    .hero, section, .cta-footer { page-break-inside: avoid; }
+    .cta-footer .btn { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="container hero-content">
+    <div class="logo">🌾</div>
+    <h1>AgriStore</h1>
+    <p class="tag">Smart Inventory &amp; Billing — Built for Agri-Input Retailers</p>
+    <p class="sub">Manage seeds, fertilizers &amp; pesticides with batch &amp; expiry tracking, GST-ready billing, customer credit ledger &amp; powerful analytics — all <strong>offline-first</strong> on your own PC.</p>
+    <div class="badges">
+      <span class="badge">🪟 Windows Desktop</span>
+      <span class="badge">📴 Works Offline</span>
+      <span class="badge">🔒 Your Data Stays Local</span>
+      <span class="badge">🇮🇳 GST Compliant</span>
+      <span class="badge">⚡ Auto-Update</span>
+    </div>
+  </div>
+</header>
+
+<!-- HIGHLIGHT STATS -->
+<div class="container">
+  <div class="highlights">
+    <div class="highlight"><div class="ic">📦</div><div class="num">Unlimited</div><div class="lbl">Items &amp; Batches</div></div>
+    <div class="highlight"><div class="ic">🧾</div><div class="num">GST Ready</div><div class="lbl">CGST / SGST / HSN</div></div>
+    <div class="highlight"><div class="ic">💾</div><div class="num">Auto Backup</div><div class="lbl">No Data Loss</div></div>
+    <div class="highlight"><div class="ic">🔄</div><div class="num">Auto Update</div><div class="lbl">Always Latest</div></div>
+  </div>
+</div>
+
+<!-- CORE FEATURES -->
+<section>
+  <div class="container">
+    <h2>Everything Your Store Needs</h2>
+    <p class="section-sub">From the front counter to the back office — one app, zero internet required</p>
+
+    <div class="feat-grid">
+      <div class="feat">
+        <div class="ic">📦</div>
+        <h3>Inventory &amp; Batch Tracking</h3>
+        <p>Manage every SKU with full batch &amp; expiry control.</p>
+        <ul>
+          <li>FIFO cost calculation</li>
+          <li>Batch-wise expiry alerts (30 / 60 day)</li>
+          <li>HSN code, GST %, multiple units</li>
+          <li>Low-stock alerts</li>
+          <li>Profit column (price − cost)</li>
+        </ul>
+      </div>
+
+      <div class="feat">
+        <div class="ic">🧾</div>
+        <h3>GST Billing &amp; Invoicing</h3>
+        <p>Print compliant invoices in seconds.</p>
+        <ul>
+          <li>Cash / Credit / Quote types</li>
+          <li>CGST + SGST auto-split</li>
+          <li>Multi-payment (Cash / UPI)</li>
+          <li>Recurring invoices</li>
+          <li>Delivery notes &amp; PDF export</li>
+        </ul>
+      </div>
+
+      <div class="feat">
+        <div class="ic">👥</div>
+        <h3>Customer Ledger</h3>
+        <p>Track every farmer's account.</p>
+        <ul>
+          <li>Credit limit &amp; outstanding</li>
+          <li>Quick-pay modal</li>
+          <li>Aging analysis</li>
+          <li>Overdue (30+ day) alerts</li>
+          <li>Phone-tap to call</li>
+        </ul>
+      </div>
+
+      <div class="feat">
+        <div class="ic">🛒</div>
+        <h3>Purchases &amp; Suppliers</h3>
+        <p>Record purchases &amp; auto-create batches.</p>
+        <ul>
+          <li>Multi-line entry</li>
+          <li>Auto stock + batch update</li>
+          <li>Supplier ledger</li>
+          <li>Cost basis tracking</li>
+        </ul>
+      </div>
+
+      <div class="feat">
+        <div class="ic">📊</div>
+        <h3>Reports &amp; Analytics</h3>
+        <p>See what's working at a glance.</p>
+        <ul>
+          <li>Profit &amp; Loss</li>
+          <li>Top customers &amp; items</li>
+          <li>Payment collection trend</li>
+          <li>Cash vs UPI breakdown</li>
+          <li>Inventory value</li>
+        </ul>
+      </div>
+
+      <div class="feat">
+        <div class="ic">💸</div>
+        <h3>Expense Tracking</h3>
+        <p>Capture every cost.</p>
+        <ul>
+          <li>Category-tagged expenses</li>
+          <li>Date range filtering</li>
+          <li>Rolls into P&amp;L</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WHY AGRISTORE -->
+<section class="alt">
+  <div class="container">
+    <h2>Why AgriStore?</h2>
+    <p class="section-sub">Designed specifically for agri-input retailers — not a generic POS</p>
+
+    <div class="why-grid">
+      <div class="why">
+        <div class="ic">📴</div>
+        <div>
+          <h4>Works Offline 24×7</h4>
+          <p>No internet? No problem. Bill, manage stock and print invoices even during a power-cut on a UPS. Cloud sync is optional, never required.</p>
+        </div>
+      </div>
+
+      <div class="why">
+        <div class="ic">🌱</div>
+        <div>
+          <h4>Built for Agri Inputs</h4>
+          <p>Batch numbers, expiry dates, FIFO costing — features other POS apps charge extra for or simply don't have.</p>
+        </div>
+      </div>
+
+      <div class="why">
+        <div class="ic">🔒</div>
+        <div>
+          <h4>Your Data, Your PC</h4>
+          <p>No monthly cloud fees. No vendor lock-in. Your customer list and sales never leave your computer unless you choose to sync.</p>
+        </div>
+      </div>
+
+      <div class="why">
+        <div class="ic">💾</div>
+        <div>
+          <h4>Auto-Backup &amp; Crash Recovery</h4>
+          <p>Schedules automatic backups, snapshots on quit, and a one-click restore. Even a Windows crash won't lose today's sales.</p>
+        </div>
+      </div>
+
+      <div class="why">
+        <div class="ic">🔄</div>
+        <div>
+          <h4>One-Click Updates</h4>
+          <p>Bug fixes and new features are auto-downloaded in the background. Just click "Restart &amp; Install" — no reinstall, no data loss.</p>
+        </div>
+      </div>
+
+      <div class="why">
+        <div class="ic">🔐</div>
+        <div>
+          <h4>Multi-User with Roles</h4>
+          <p>Admin and cashier accounts with separate permissions. Track who did what.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPARISON -->
+<section>
+  <div class="container">
+    <h2>How AgriStore Compares</h2>
+    <p class="section-sub">Stacking up against the most common alternatives</p>
+
+    <div class="compare-wrap">
+      <table class="compare">
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th class="col-us">🌾 AgriStore</th>
+            <th>Busy</th>
+            <th>Tally</th>
+            <th>Marg</th>
+            <th>Excel / Manual</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>One-time price (no subscription)</td><td class="yes col-us">✓ Yes</td><td class="no">✗</td><td class="partial">Partial</td><td class="no">✗</td><td class="yes">Free</td></tr>
+          <tr><td>Works fully offline</td><td class="yes col-us">✓ Yes</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+          <tr><td>Batch &amp; expiry tracking (built-in)</td><td class="yes col-us">✓ Yes</td><td class="partial">Add-on</td><td class="partial">Manual</td><td class="partial">Add-on</td><td class="no">✗</td></tr>
+          <tr><td>FIFO cost auto-calculation</td><td class="yes col-us">✓ Yes</td><td class="partial">Setup needed</td><td class="partial">Setup needed</td><td class="partial">Setup needed</td><td class="no">✗</td></tr>
+          <tr><td>GST-ready invoices (CGST/SGST/HSN)</td><td class="yes col-us">✓ Yes</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="no">✗</td></tr>
+          <tr><td>Customer credit ledger &amp; aging</td><td class="yes col-us">✓ Yes</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="no">✗</td></tr>
+          <tr><td>Quick-pay modal (1-click payment)</td><td class="yes col-us">✓ Yes</td><td class="no">✗</td><td class="no">✗</td><td class="partial">Partial</td><td class="no">✗</td></tr>
+          <tr><td>Auto-backup + crash recovery</td><td class="yes col-us">✓ Yes</td><td class="partial">Manual</td><td class="partial">Manual</td><td class="partial">Manual</td><td class="no">✗</td></tr>
+          <tr><td>Auto-update (no reinstall)</td><td class="yes col-us">✓ Yes</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td></tr>
+          <tr><td>Modern dashboard &amp; analytics</td><td class="yes col-us">✓ Yes</td><td class="partial">Basic</td><td class="partial">Basic</td><td class="partial">Basic</td><td class="no">✗</td></tr>
+          <tr><td>Payment method breakdown (Cash/UPI)</td><td class="yes col-us">✓ Yes</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td><td class="no">✗</td></tr>
+          <tr><td>Multi-user with roles</td><td class="yes col-us">✓ Yes</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="no">✗</td></tr>
+          <tr><td>Cloud sync (optional)</td><td class="yes col-us">✓ Optional</td><td class="partial">Paid</td><td class="partial">Paid</td><td class="partial">Paid</td><td class="no">✗</td></tr>
+          <tr><td>Simple Tamil-friendly UI</td><td class="yes col-us">✓ Yes</td><td class="no">Complex</td><td class="no">Complex</td><td class="no">Complex</td><td class="yes">—</td></tr>
+          <tr><td>Setup time</td><td class="yes col-us">5 min</td><td class="no">Hours</td><td class="no">Days</td><td class="no">Hours</td><td class="yes">0</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="alt">
+  <div class="container">
+    <h2>Simple, Transparent Pricing</h2>
+    <p class="section-sub">One-time payment per PC. No monthly fees. No surprises.</p>
+
+    <div class="pricing-grid">
+      <div class="plan">
+        <h3>Starter</h3>
+        <div class="price">₹2,999</div>
+        <div class="per">one-time · 1 PC · 1 year updates</div>
+        <ul>
+          <li>All core features</li>
+          <li>Items, customers, invoices</li>
+          <li>GST &amp; batch tracking</li>
+          <li>Auto-backup to disk</li>
+          <li>Free updates for 1 year</li>
+          <li>Email support</li>
+        </ul>
+        <a href="#contact" class="cta">Buy Now</a>
+      </div>
+
+      <div class="plan featured">
+        <span class="pop">MOST POPULAR</span>
+        <h3>Professional</h3>
+        <div class="price">₹4,999</div>
+        <div class="per">one-time · 1 PC · lifetime updates</div>
+        <ul>
+          <li>Everything in Starter</li>
+          <li>Multi-user with roles</li>
+          <li>Recurring invoices</li>
+          <li>Advanced analytics</li>
+          <li><strong>Lifetime free updates</strong></li>
+          <li>Priority phone support</li>
+          <li>On-site setup (optional)</li>
+        </ul>
+        <a href="#contact" class="cta">Buy Now</a>
+      </div>
+
+      <div class="plan">
+        <h3>Multi-Store</h3>
+        <div class="price">Custom</div>
+        <div class="per">2+ PCs · cloud sync · per quote</div>
+        <ul>
+          <li>Everything in Professional</li>
+          <li>Cloud sync between stores</li>
+          <li>Consolidated reports</li>
+          <li>Custom branding</li>
+          <li>Dedicated account manager</li>
+          <li>Training included</li>
+        </ul>
+        <a href="#contact" class="cta">Contact Us</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA FOOTER -->
+<div class="cta-footer" id="contact">
+  <div class="container">
+    <h2>Ready to Modernize Your Store?</h2>
+    <p>Try AgriStore free for 14 days. No credit card. No risk.</p>
+    <a href="mailto:sales@agristore.app?subject=AgriStore%20Trial" class="btn">📩 Request Free Trial</a>
+    <a href="tel:+919999999999" class="btn alt">📞 Call: +91 99999 99999</a>
+  </div>
+</div>
+
+<footer>
+  <div class="container">
+    © 2026 AgriStore · Made in India for Bharat's agri retailers · Version 1.1.3 ·
+    <a href="https://github.com/laimaruthi/Agristore">GitHub</a>
+  </div>
+</footer>
+
+</body>
+</html>

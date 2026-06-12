@@ -1,0 +1,91 @@
+================================================================================
+                    BUSY SOFTWARE vs AGRISTORE COMPARISON
+================================================================================
+
+FEATURE COMPARISON TABLE
+--------------------------------------------------------------------------------
+Feature                  | Busy Software           | AgriStore
+-------------------------|-------------------------|---------------------------
+Price                    | ₹12,000 - ₹45,000/year  | One-time license fee
+Target Users             | General businesses      | Agriculture stores
+Complexity               | Complex, steep learning | Simple, easy to use
+GST Compliance           | Full GST, ITR, TDS      | Basic (can be added)
+Internet Required        | Some features need net  | 100% Offline capable
+Installation             | Requires activation     | Machine-locked license
+Database                 | Proprietary             | SQLite (open, reliable)
+Multi-User               | Network version avail.  | Single user + Firebase sync
+Support                  | Paid annual support     | Developer provides support
+Updates                  | Annual subscription     | Developer controls updates
+Customization            | Limited                 | Full source code access
+--------------------------------------------------------------------------------
+
+
+WHERE AGRISTORE WINS
+--------------------------------------------------------------------------------
+Advantage               | Details
+------------------------|-------------------------------------------------------
+Cost Effective          | One-time sale vs yearly subscription model
+Agriculture Focus       | Built specifically for agri stores, fertilizers,
+                        | seeds, pesticides
+Offline First           | Works in rural areas with no internet connection
+Simple UI               | Store owners can learn in 10 minutes
+Customizable            | Full source code - add any feature needed
+No Dependency           | No vendor lock-in, no annual fees
+Portable                | Runs from USB drive if needed
+--------------------------------------------------------------------------------
+
+
+WHERE BUSY WINS
+--------------------------------------------------------------------------------
+Advantage               | Details
+------------------------|-------------------------------------------------------
+GST/Tax Features        | Full GST return filing, e-invoicing, TDS
+Multi-User              | Multiple users on network simultaneously
+Advanced Reports        | Balance sheet, P&L, trial balance
+Banking                 | Bank reconciliation, cheque printing
+Inventory               | Advanced batch tracking, manufacturing
+Integration             | Tally import, bank feeds, e-way bill
+Support                 | Professional support team available
+--------------------------------------------------------------------------------
+
+
+WHO SHOULD USE AGRISTORE?
+--------------------------------------------------------------------------------
+- Small to medium agriculture store
+- Owner-operated (1-2 people)
+- Rural area with poor internet
+- Need simple billing & customer tracking
+- Want one-time cost, no yearly fees
+- Don't need complex GST filing (CA handles it)
+
+
+WHO SHOULD USE BUSY?
+--------------------------------------------------------------------------------
+- Large business with multiple employees
+- Need to file GST returns directly from software
+- Multiple branches/locations
+- Need advanced accounting (P&L, Balance Sheet)
+- Have accountant using the software daily
+
+
+FEATURES YOU CAN ADD TO COMPETE
+--------------------------------------------------------------------------------
+Feature                  | Difficulty    | Competes With
+-------------------------|---------------|------------------
+GST Invoice Format       | Easy          | Busy Basic
+GSTR-1 Export (JSON)     | Medium        | Busy GST
+Stock Alerts             | Easy          | Busy Inventory
+Barcode Scanning         | Medium        | Busy Pro
+SMS to Customers         | Easy          | Busy Pro
+WhatsApp Invoice         | Medium        | Modern feature
+Multi-language (Tamil)   | Medium        | Local advantage
+--------------------------------------------------------------------------------
+
+
+SUMMARY
+--------------------------------------------------------------------------------
+AgriStore is a simpler, cheaper alternative for small agriculture stores
+who don't need Busy's complexity. It serves customers who find Busy
+too expensive, too complex, or too dependent on internet connectivity.
+
+================================================================================

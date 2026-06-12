@@ -1,0 +1,14 @@
+{
+  "projects": {
+    "default": "uzhavan-agro-3e177"
+  },
+  "targets": {
+    "uzhavan-agro-3e177": {
+      "hosting": {
+        "production": [
+          "uzhavanagro-center"
+        ]
+      }
+    }
+  }
+}

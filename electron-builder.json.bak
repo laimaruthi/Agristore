@@ -1,0 +1,22 @@
+{
+  "appId": "com.agristore.app",
+  "productName": "AgriStore",
+  "directories": {
+    "output": "release"
+  },
+  "files": [
+    "dist/**/*",
+    "electron/**/*",
+    "package.json"
+  ],
+  "extraMetadata": {
+    "main": "electron/main.cjs"
+  },
+  "win": {
+    "target": "portable",
+    "artifactName": "${productName}-${version}-Portable.${ext}"
+  },
+  "portable": {
+    "artifactName": "${productName}-Portable.${ext}"
+  }
+}

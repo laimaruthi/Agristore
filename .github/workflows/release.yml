@@ -1,0 +1,56 @@
+name: Release
+
+# Builds the Windows installer + portable exe and publishes them to a GitHub
+# Release, which is what the in-app auto-updater (electron-updater) pulls from.
+#
+# Trigger: push a version tag, e.g.
+#   git tag v1.1.9 && git push origin v1.1.9
+# or run manually from the Actions tab (workflow_dispatch).
+#
+# The version in package.json MUST match the tag (without the leading "v").
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+permissions:
+  contents: write # required for electron-builder to create the Release
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        # npm install (not `npm ci`): the lockfile can't fully enumerate
+        # platform-specific optional deps (e.g. @emnapi/* WASM fallbacks,
+        # win32 native binaries) when generated off-Windows, which makes the
+        # strict `npm ci` equality check fail on the Windows runner.
+        run: npm install --no-audit --no-fund
+
+      - name: Build and publish (Windows x64)
+        env:
+          # electron-builder reads GH_TOKEN to publish to GitHub Releases.
+          # The built-in GITHUB_TOKEN has contents:write for this repo.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Firebase config injected at build time from encrypted repo secrets
+          # (kept out of source). Cloud sync is optional; blank values just
+          # disable it.
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_DATABASE_URL: ${{ secrets.VITE_FIREBASE_DATABASE_URL }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+        run: npm run electron:publish

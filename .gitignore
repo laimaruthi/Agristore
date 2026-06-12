@@ -1,0 +1,36 @@
+# Vercel
+.vercel
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+# Electron-builder output (installers/zips are published as GitHub Release assets, never committed)
+release/
+
+# Environment variables (IMPORTANT: Never commit sensitive credentials!)
+.env
+.env.local
+.env.*.local
+
+# License signing keys (NEVER commit the private key — it signs all licenses)
+license-keys/
+*.pem
+# Generated customer license files
+license_*.txt
+
+# Firebase cache
+.firebase/
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
