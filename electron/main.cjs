@@ -319,8 +319,12 @@ function sendUpdaterEvent(channel, payload) {
 }
 
 function setupAutoUpdater() {
+  // Download new versions silently in the background, but NEVER install without
+  // the user's action. The update applies only when they click "Restart &
+  // install" (which calls quitAndInstall); dismissing it leaves them on the
+  // current version — nothing installs on quit behind their back.
   autoUpdater.autoDownload = true;
-  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.autoInstallOnAppQuit = false;
 
   autoUpdater.on('checking-for-update', () => {
     console.log('🔄 Checking for update...');
@@ -382,8 +386,21 @@ ipcMain.handle('updater:check', async () => {
 
 ipcMain.handle('updater:install', async () => {
   try {
+    // Take a fresh, clearly-labeled backup right before installing the update.
+    // If it succeeds, mark the quit-backup as done so before-quit doesn't make
+    // a redundant copy; if it fails, leave the flag so before-quit still tries.
+    let backupPath = null;
+    if (useSQLite && sqliteDB) {
+      try {
+        const r = autoBackup.performBackup('pre-update');
+        if (r && r.success) { backupPath = r.path; didQuitBackup = true; }
+        else { console.warn('pre-update backup did not succeed:', r && r.error); }
+      } catch (e) {
+        console.warn('pre-update backup failed:', e.message);
+      }
+    }
     setImmediate(() => autoUpdater.quitAndInstall(true, true));
-    return { success: true };
+    return { success: true, backupPath };
   } catch (e) {
     return { success: false, error: e.message };
   }

@@ -634,49 +634,77 @@ function createBackup(backupPath) {
   }
 }
 
-// Restore from backup file. Atomic: stages backup in a temp file, snapshots the
-// existing DB to .pre-restore so we can roll back if anything goes wrong.
+// Restore from backup file. Atomic + validated: rejects non-SQLite files up
+// front, stages the backup in a temp file, snapshots the live DB to
+// .pre-restore, clears stale WAL/SHM sidecars, swaps via rename, then verifies
+// the restored DB (integrity + core schema) BEFORE discarding the snapshot.
 function restoreFromBackup(backupPath) {
   if (!backupPath || !fs.existsSync(backupPath)) {
     return { success: false, error: 'Backup file not found' };
   }
   const tempPath = dbPath + '.restore-tmp';
   const snapshotPath = dbPath + '.pre-restore';
+  const walPath = dbPath + '-wal';
+  const shmPath = dbPath + '-shm';
+  const rm = (p) => { try { if (fs.existsSync(p)) fs.unlinkSync(p); } catch (_) { /* ignore */ } };
   let closedDb = false;
   try {
-    // 1) Stage the backup into a temp file (so a bad copy doesn't corrupt the live DB)
+    // 0) Reject anything that isn't a SQLite database (magic header check), so a
+    //    stray file picked via "All Files" can't replace the live data.
+    const fd = fs.openSync(backupPath, 'r');
+    const header = Buffer.alloc(16);
+    const read = fs.readSync(fd, header, 0, 16, 0);
+    fs.closeSync(fd);
+    if (read < 16 || header.toString('utf8', 0, 15) !== 'SQLite format 3') {
+      return { success: false, error: 'Selected file is not a valid SQLite database (.db).' };
+    }
+
+    // 1) Stage the backup into a temp file (so a bad copy never touches the live DB)
     fs.copyFileSync(backupPath, tempPath);
 
-    // 2) Close the live DB and snapshot it
+    // 2) Close the live DB and snapshot it for rollback
     if (db) { db.close(); closedDb = true; }
     if (fs.existsSync(dbPath)) {
       fs.copyFileSync(dbPath, snapshotPath);
     }
 
-    // 3) Atomic-ish rename — single syscall, no partial write window
+    // 3) Clear stale WAL/SHM sidecars — a leftover -wal would otherwise be
+    //    replayed onto the freshly restored file and corrupt/mix data.
+    rm(walPath); rm(shmPath);
+
+    // 4) Atomic-ish rename — single syscall, no partial write window
     fs.renameSync(tempPath, dbPath);
 
-    // 4) Reopen
+    // 5) Reopen and VALIDATE before committing the restore
     db = new Database(dbPath);
     db.pragma('journal_mode = WAL');
+    const integrity = db.pragma('integrity_check');
+    const integrityOk = integrity && integrity[0] && integrity[0].integrity_check === 'ok';
+    const coreTables = db
+      .prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE type='table' AND name IN ('items','invoices','customers')")
+      .get().n;
+    if (!integrityOk) throw new Error('Restored database failed the integrity check.');
+    if (coreTables === 0) throw new Error('This file is not an AgriStore database (core tables missing).');
 
-    // Snapshot served its purpose; safe to remove
-    try { if (fs.existsSync(snapshotPath)) fs.unlinkSync(snapshotPath); } catch (_) {}
-
+    // 6) Validated — snapshot no longer needed
+    rm(snapshotPath);
     return { success: true, message: 'Database restored successfully' };
   } catch (error) {
-    // Cleanup temp file if it exists
-    try { if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath); } catch (_) {}
-    // If the live DB was replaced before we crashed, try rolling back from snapshot
+    // Cleanup the staged temp file
+    rm(tempPath);
+    // Roll back from the snapshot if the live DB was already swapped. Must close
+    // the (bad) restored handle first — Windows can't overwrite an open file.
     try {
       if (fs.existsSync(snapshotPath)) {
+        if (db) { try { db.close(); } catch (_) { /* ignore */ } db = null; }
+        rm(walPath); rm(shmPath);
         fs.copyFileSync(snapshotPath, dbPath);
-        fs.unlinkSync(snapshotPath);
+        rm(snapshotPath);
       }
-    } catch (_) {}
-    // Reopen DB so the app remains usable even after a failed restore
+    } catch (_) { /* ignore */ }
+    // Reopen so the app stays usable after a failed restore
     if (closedDb) {
-      try { db = new Database(dbPath); db.pragma('journal_mode = WAL'); } catch (_) {}
+      try { db = new Database(dbPath); db.pragma('journal_mode = WAL'); } catch (_) { /* ignore */ }
     }
     return { success: false, error: error.message };
   }
