@@ -220,9 +220,14 @@ const TABLES = {
 // Initialize database
 function initDatabase() {
   try {
-    // Get user data path
-    const userDataPath = app.getPath('userData');
-    dbPath = path.join(userDataPath, 'agristore.db');
+    // Get user data path. AGRISTORE_DB_PATH lets tests point at a temp DB
+    // without an Electron app instance.
+    if (process.env.AGRISTORE_DB_PATH) {
+      dbPath = process.env.AGRISTORE_DB_PATH;
+    } else {
+      const userDataPath = app.getPath('userData');
+      dbPath = path.join(userDataPath, 'agristore.db');
+    }
     
     console.log('📁 Database path:', dbPath);
     
@@ -281,9 +286,41 @@ function runMigrations() {
       db.exec("ALTER TABLE users ADD COLUMN password_hash TEXT");
       console.log('✅ Added users.password_hash column');
     }
+
+    // ── Migration: ensure every table has a `data` JSON column ───────────────
+    // Records are stored losslessly as JSON in `data` (the typed columns are
+    // best-effort, for indexes). This makes writes tolerant of any object shape
+    // (camelCase fields, nested arrays like payments/items, new fields) instead
+    // of throwing "no such column" and wiping data on restore.
+    for (const tableName of Object.keys(TABLES)) {
+      const cols = db.prepare(`PRAGMA table_info(${tableName})`).all();
+      if (!cols.some((c) => c.name === 'data')) {
+        db.exec(`ALTER TABLE ${tableName} ADD COLUMN data TEXT`);
+        console.log(`✅ Added ${tableName}.data column`);
+      }
+    }
+    _columnCache = {};
   } catch (err) {
     console.warn('⚠️ Migration warning:', err.message);
   }
+}
+
+// Generate a unique id for records that arrive without one.
+function generateId() {
+  return 'row_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
+}
+
+// Cache of column metadata per table (name → {notnull, type, dflt}). Reset after migrations.
+let _columnCache = {};
+function tableColumns(tableName) {
+  if (!_columnCache[tableName]) {
+    const map = new Map();
+    for (const c of db.prepare(`PRAGMA table_info(${tableName})`).all()) {
+      map.set(c.name, { notnull: c.notnull === 1, type: c.type || '', dflt: c.dflt_value });
+    }
+    _columnCache[tableName] = map;
+  }
+  return _columnCache[tableName];
 }
 
 function createIndexes() {
@@ -348,17 +385,34 @@ function unpackBlob(row) {
   return { ...payload, id: row.id, created_at: row.created_at, updated_at: row.updated_at };
 }
 
+// Turn a stored row back into the original-shape record. Prefers the lossless
+// `data` JSON blob; falls back to the raw typed row for legacy rows that
+// predate the `data` column.
+function unpackRow(row) {
+  if (!row) return row;
+  if (row.data && typeof row.data === 'string') {
+    try {
+      const payload = JSON.parse(row.data);
+      // The blob carries the original id with its original type (e.g. numeric).
+      // Fall back to the id column only for legacy rows whose blob lacks it.
+      return {
+        ...payload,
+        id: payload.id !== undefined ? payload.id : row.id,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+      };
+    } catch (_) { /* fall through to typed row */ }
+  }
+  const { data, deleted, ...rest } = row;
+  return rest;
+}
+
 // Get all records from a table
 function getAll(tableName) {
   try {
     ASSERT_TABLE(tableName);
-    const stmt = db.prepare(`SELECT * FROM ${tableName} WHERE deleted = 0 ORDER BY updated_at DESC`);
-    const rows = stmt.all();
-    if (BLOB_TABLES.has(tableName)) {
-      return rows.map(unpackBlob);
-    }
-    // Parse JSON fields
-    return rows.map(row => parseJsonFields(row, tableName));
+    const rows = db.prepare(`SELECT * FROM ${tableName} WHERE deleted = 0 ORDER BY updated_at DESC`).all();
+    return rows.map(unpackRow);
   } catch (error) {
     console.error(`Error in getAll(${tableName}):`, error);
     return [];
@@ -369,52 +423,74 @@ function getAll(tableName) {
 function get(tableName, id) {
   try {
     ASSERT_TABLE(tableName);
-    const stmt = db.prepare(`SELECT * FROM ${tableName} WHERE id = ?`);
-    const row = stmt.get(id);
-    if (!row) return null;
-    if (BLOB_TABLES.has(tableName)) return unpackBlob(row);
-    return parseJsonFields(row, tableName);
+    const row = db.prepare(`SELECT * FROM ${tableName} WHERE id = ?`).get(id);
+    return row ? unpackRow(row) : null;
   } catch (error) {
     console.error(`Error in get(${tableName}, ${id}):`, error);
     return null;
   }
 }
 
-// Insert or update a record
+// Insert or update a record.
+// The COMPLETE record is stored losslessly in the `data` JSON column, so any
+// object shape round-trips. Typed columns that happen to match are also filled
+// (best-effort, for indexes/queries) — but we ONLY write columns that exist, so
+// an unknown/camelCase field can never raise "no such column" and abort a save.
 function put(tableName, data) {
   try {
     ASSERT_TABLE(tableName);
     const now = Date.now();
-    let record = {
+    const idVal = (data.id !== undefined && data.id !== null && data.id !== '') ? data.id : generateId();
+    const record = {
       ...data,
+      id: idVal,
       created_at: data.created_at || now,
       updated_at: now,
-      deleted: data.deleted || 0
+      deleted: data.deleted || 0,
     };
-    
-    // Blob-tables: pack arbitrary fields into a single JSON column
-    let processedRecord;
-    if (BLOB_TABLES.has(tableName)) {
-      processedRecord = packBlob(record);
-    } else {
-      // Stringify JSON fields
-      processedRecord = stringifyJsonFields(record, tableName);
+
+    const cols = tableColumns(tableName);
+    // The id COLUMN is the string form (clean TEXT primary key); the `data` blob
+    // carries the COMPLETE record incl. the original id with its original type,
+    // so numeric ids survive intact and relationships (e.g. invoice.customerId
+    // → customer.id) keep matching after a restore.
+    const row = {
+      id: String(idVal),
+      created_at: record.created_at,
+      updated_at: record.updated_at,
+      deleted: record.deleted,
+    };
+
+    // Lossless full payload (everything except system meta) → `data`
+    const blobExclude = new Set(['created_at', 'updated_at', 'deleted', 'data']);
+    if (cols.has('data')) {
+      const payload = {};
+      for (const k of Object.keys(record)) if (!blobExclude.has(k)) payload[k] = record[k];
+      row.data = JSON.stringify(payload);
     }
-    
-    // Get column names from record
-    const columns = Object.keys(processedRecord);
+
+    // Best-effort typed columns (only those that actually exist on the table).
+    // - Fields the record provides are copied (objects serialized to JSON).
+    // - Required (NOT NULL, no default) columns the record lacks get a safe
+    //   default so the INSERT never fails — the authoritative value still lives
+    //   in `data`. This keeps writes tolerant of records whose shape doesn't
+    //   match the legacy typed schema (e.g. primitive-wrapped categories).
+    for (const [col, info] of cols) {
+      if (col in row) continue; // id + system meta already set above
+      if (col in record) {
+        const v = record[col];
+        row[col] = (v !== null && typeof v === 'object') ? JSON.stringify(v) : v;
+      } else if (info.notnull && info.dflt == null) {
+        row[col] = /INT|REAL|NUM|BOOL|DOUB|FLOA/i.test(info.type) ? 0 : '';
+      }
+    }
+
+    const columns = Object.keys(row);
     const placeholders = columns.map(() => '?').join(', ');
-    const updates = columns.map(col => `${col} = excluded.${col}`).join(', ');
-    
-    const sql = `
-      INSERT INTO ${tableName} (${columns.join(', ')})
-      VALUES (${placeholders})
-      ON CONFLICT(id) DO UPDATE SET ${updates}
-    `;
-    
-    const stmt = db.prepare(sql);
-    stmt.run(...columns.map(col => processedRecord[col]));
-    
+    const updates = columns.filter((c) => c !== 'id').map((c) => `${c} = excluded.${c}`).join(', ');
+    const sql = `INSERT INTO ${tableName} (${columns.join(', ')}) VALUES (${placeholders}) ON CONFLICT(id) DO UPDATE SET ${updates}`;
+    db.prepare(sql).run(...columns.map((c) => row[c]));
+
     return record;
   } catch (error) {
     console.error(`Error in put(${tableName}):`, error);

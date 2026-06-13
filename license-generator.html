@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AgriStore — License Key Generator</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: radial-gradient(1200px 600px at 50% -10%, #0b3a2e 0%, #07120f 60%, #050b09 100%);
+    color: #d7f0e4; display: flex; align-items: flex-start; justify-content: center; padding: 32px 16px;
+  }
+  .card {
+    width: 100%; max-width: 620px; background: rgba(8, 24, 19, .72); backdrop-filter: blur(8px);
+    border: 1px solid rgba(16,185,129,.25); border-radius: 20px; padding: 28px 26px; box-shadow: 0 24px 60px rgba(0,0,0,.45);
+  }
+  h1 { margin: 0 0 4px; font-size: 22px; color: #6ee7b7; display: flex; align-items: center; gap: 8px; }
+  .sub { margin: 0 0 22px; font-size: 13px; color: #5fae90; }
+  label { display: block; font-size: 12px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: #4fae8b; margin: 16px 0 6px; }
+  .hint { font-weight: 400; text-transform: none; letter-spacing: 0; color: #4a7d6a; }
+  input[type=text], input[type=number], textarea {
+    width: 100%; background: rgba(4,16,12,.7); border: 1px solid rgba(16,185,129,.3); border-radius: 12px;
+    color: #e6fff4; padding: 11px 13px; font-size: 14px; outline: none; transition: border-color .15s;
+  }
+  input:focus, textarea:focus { border-color: #34d399; box-shadow: 0 0 0 3px rgba(52,211,153,.15); }
+  textarea { resize: vertical; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+  .row { display: flex; gap: 12px; }
+  .row > div { flex: 1; }
+  input[type=file] { font-size: 13px; color: #9ed8c0; }
+  button {
+    margin-top: 22px; width: 100%; border: 0; border-radius: 12px; padding: 13px; font-size: 15px; font-weight: 700;
+    color: #042018; background: linear-gradient(135deg, #34d399, #10b981); cursor: pointer; transition: filter .15s;
+  }
+  button:hover { filter: brightness(1.07); }
+  button.secondary { background: rgba(16,185,129,.15); color: #6ee7b7; border: 1px solid rgba(16,185,129,.35); margin-top: 10px; }
+  .out { margin-top: 18px; display: none; }
+  .out.show { display: block; }
+  .key { word-break: break-all; background: rgba(4,16,12,.85); border: 1px solid rgba(52,211,153,.4); border-radius: 12px; padding: 14px; font-family: ui-monospace, monospace; font-size: 12px; color: #a7f3d0; }
+  .meta { font-size: 12px; color: #6fb89c; margin-top: 8px; }
+  .err { display: none; margin-top: 14px; background: rgba(220,38,38,.12); border: 1px solid rgba(248,113,113,.4); color: #fca5a5; border-radius: 12px; padding: 11px 13px; font-size: 13px; }
+  .err.show { display: block; }
+  .note { margin-top: 22px; font-size: 11px; color: #4a7d6a; border-top: 1px solid rgba(16,185,129,.15); padding-top: 12px; line-height: 1.5; }
+  code { color: #9ed8c0; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>🔑 AgriStore License Generator</h1>
+    <p class="sub">Sign offline license keys with your private key. Nothing is uploaded — all signing happens in this browser.</p>
+
+    <label>Private signing key <span class="hint">(load <code>license-keys/private.pem</code>, or paste below)</span></label>
+    <input type="file" id="keyFile" accept=".pem,.txt" />
+    <textarea id="keyText" rows="3" placeholder="-----BEGIN PRIVATE KEY-----&#10;...&#10;-----END PRIVATE KEY-----" style="margin-top:8px"></textarea>
+
+    <label>Machine ID <span class="hint">(from the customer's activation screen)</span></label>
+    <input type="text" id="machineId" placeholder="XXXX-XXXX-XXXX-XXXX" autocomplete="off" spellcheck="false" />
+
+    <div class="row">
+      <div>
+        <label>Store name <span class="hint">(optional)</span></label>
+        <input type="text" id="storeName" placeholder="e.g. Krishna Agro Store" autocomplete="off" />
+      </div>
+      <div>
+        <label>Validity (days) <span class="hint">(blank = lifetime)</span></label>
+        <input type="number" id="days" min="1" placeholder="lifetime" />
+      </div>
+    </div>
+
+    <button id="gen">Generate License Key</button>
+
+    <div class="err" id="err"></div>
+
+    <div class="out" id="out">
+      <label>License key <span class="hint">(give this entire string to the customer)</span></label>
+      <div class="key" id="keyOut"></div>
+      <div class="meta" id="meta"></div>
+      <button class="secondary" id="copy">📋 Copy key</button>
+    </div>
+
+    <div class="note">
+      The private key never leaves this page. Keep <code>private.pem</code> secret — anyone with it can mint licenses.
+      This file contains no secret and is safe to keep; it only works when you load your own private key.
+    </div>
+  </div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const TOKEN_PREFIX = "AGRI2.";
+
+function showErr(msg) { const e = $("err"); e.textContent = msg; e.classList.add("show"); $("out").classList.remove("show"); }
+function clearErr() { $("err").classList.remove("show"); }
+
+function b64urlFromBytes(bytes) {
+  let bin = ""; const arr = new Uint8Array(bytes);
+  for (let i = 0; i < arr.length; i++) bin += String.fromCharCode(arr[i]);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function pemToDer(pem) {
+  const body = pem.replace(/-----BEGIN [^-]+-----/, "").replace(/-----END [^-]+-----/, "").replace(/\s+/g, "");
+  const bin = atob(body);
+  const der = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) der[i] = bin.charCodeAt(i);
+  return der;
+}
+
+// Load a chosen .pem file into the textarea
+$("keyFile").addEventListener("change", (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = () => { $("keyText").value = r.result; };
+  r.readAsText(f);
+});
+
+// Normalize machine ID to uppercase (matches the app's getMachineId)
+$("machineId").addEventListener("input", (e) => {
+  const pos = e.target.selectionStart;
+  e.target.value = e.target.value.toUpperCase();
+  e.target.setSelectionRange(pos, pos);
+});
+
+$("gen").addEventListener("click", async () => {
+  clearErr();
+  try {
+    const pem = $("keyText").value.trim();
+    const machineId = $("machineId").value.trim().toUpperCase();
+    const storeName = $("storeName").value.trim();
+    const daysRaw = $("days").value.trim();
+
+    if (!pem.includes("PRIVATE KEY")) return showErr("Load or paste your private signing key (private.pem).");
+    if (!machineId) return showErr("Enter the customer's Machine ID.");
+
+    let key;
+    try {
+      key = await crypto.subtle.importKey("pkcs8", pemToDer(pem), { name: "Ed25519" }, false, ["sign"]);
+    } catch (err) {
+      return showErr("Could not read the private key. Make sure it's the Ed25519 private.pem (PKCS#8). " + err.message);
+    }
+
+    const expiryDate = daysRaw ? new Date(Date.now() + Number(daysRaw) * 86400000).toISOString() : null;
+    const payload = { machineId, storeName, createdAt: new Date().toISOString(), expiryDate, version: "2.0" };
+    const payloadBytes = new TextEncoder().encode(JSON.stringify(payload));
+
+    const sig = await crypto.subtle.sign("Ed25519", key, payloadBytes);
+    const token = TOKEN_PREFIX + b64urlFromBytes(payloadBytes) + "." + b64urlFromBytes(sig);
+
+    $("keyOut").textContent = token;
+    $("meta").textContent = "Machine: " + machineId + "  ·  Store: " + (storeName || "—") + "  ·  Expires: " + (expiryDate ? expiryDate.slice(0,10) : "Never (lifetime)");
+    $("out").classList.add("show");
+  } catch (err) {
+    showErr("Generation failed: " + err.message);
+  }
+});
+
+$("copy").addEventListener("click", async () => {
+  try { await navigator.clipboard.writeText($("keyOut").textContent); $("copy").textContent = "✓ Copied"; setTimeout(() => $("copy").textContent = "📋 Copy key", 1500); }
+  catch { /* clipboard may be blocked on file:// — user can select manually */ }
+});
+
+// Feature check
+if (!crypto.subtle) showErr("This browser has no Web Crypto API. Open in a modern browser.");
+</script>
+</body>
+</html>
